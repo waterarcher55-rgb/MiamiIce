@@ -6,10 +6,10 @@ public abstract class BaseEnemy : MonoBehaviour
 {
 	//Components
 	[Header("BaseEnemy Components & Game Objects")]
-	public GameObject mesh; //Animated mesh for the enemies (LUKE ONLY!)
-	Animator anim;          //Controller for animations (Luke will add these in at a later point)
-	Rigidbody2D rb;
-	NavMeshAgent agent;
+	public GameObject mesh;    //Animated mesh for the enemies (LUKE ONLY!)
+	protected Animator anim;   //Controller for animations (Luke will add these in at a later point)
+	protected Rigidbody2D rb;
+	protected NavMeshAgent agent;
 
 
 	
