@@ -79,12 +79,14 @@ public class PlayerMovement : MonoBehaviour
 				finalSpeed *= aimingMod;
 			}
 			rb.linearVelocity = new Vector2(MoveVector.x * finalSpeed, MoveVector.y * finalSpeed);
-		}
+            NoiseEvents.PublishSpeed(finalSpeed, transform.position); //Added by Carson, passes speed to NoiseEvents
+        }
 		else if (MoveVector == Vector2.zero && moving)
 		{
 			rb.linearVelocity = Vector2.zero;
 			moving = false;
-		}
+            NoiseEvents.PublishSpeed(0, transform.position); //Added by Carson, ensures speed is set to 0 when no longer moving
+        }
     }
 
 	public void OnMove(InputAction.CallbackContext context)
