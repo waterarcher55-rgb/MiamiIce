@@ -5209,13 +5209,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1719766759}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: -0.7071068, w: 0.7071068}
-  m_LocalPosition: {x: -3.74, y: 0, z: 0}
+  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
+  m_LocalPosition: {x: 3.74, y: 0, z: 0}
   m_LocalScale: {x: 5.2625, y: 6.7687497, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 671883313}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90}
 --- !u!114 &1719766761
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5726,7 +5726,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a4525190e52b6c4ab4216a4975210c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StageTimer
-  stageDuration: 1
+  stageDuration: 30
   HasExpired: 0
 --- !u!4 &2126661053
 Transform:
