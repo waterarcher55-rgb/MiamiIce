@@ -79,12 +79,12 @@ public class PlayerMovement : MonoBehaviour
 				finalSpeed *= aimingMod;
 			}
 			rb.linearVelocity = new Vector2(MoveVector.x * finalSpeed, MoveVector.y * finalSpeed);
-		}
+        }
 		else if (MoveVector == Vector2.zero && moving)
 		{
 			rb.linearVelocity = Vector2.zero;
 			moving = false;
-		}
+        }
     }
 
 	public void OnMove(InputAction.CallbackContext context)
