@@ -37,121 +37,136 @@ public class ShooterEnemy : BaseEnemy
 
     void Update()
     {
-        // -------------------------------------------------------------
-        // 1. COMBAT / ALERT STATE
-        // -------------------------------------------------------------
-        if (isAlerted && Target != null)
-        {
-            float distanceToPlayer = Vector2.Distance(transform.position, Target.position);
 
-            // Continuous Line-of-Sight Check
-            ContactFilter2D filter = new ContactFilter2D { useTriggers = false };
-            RaycastHit2D[] hit = new RaycastHit2D[3];
-            Physics2D.Linecast(transform.position, Target.position, filter, hit);
-            bool hasLineOfSight = hit.Length > 1 && hit[1].transform != null && hit[1].transform.CompareTag("Player");
+		if (Status != EnemyStatus.Investigating)
+		{
+			// -------------------------------------------------------------
+			// 1. COMBAT / ALERT STATE
+			// -------------------------------------------------------------
+			if (isAlerted && Target != null && Status != EnemyStatus.Investigating)
+			{
+				float distanceToPlayer = Vector2.Distance(transform.position, Target.position);
 
-            // If player ran out of chase range or broke line of sight
-            if (distanceToPlayer > chaseDistance || !hasLineOfSight)
-            {
-                StartSearching();
-                return;
-            }
+				// Continuous Line-of-Sight Check
+				ContactFilter2D filter = new ContactFilter2D { useTriggers = false };
+				RaycastHit2D[] hit = new RaycastHit2D[3];
+				Physics2D.Linecast(transform.position, Target.position, filter, hit);
+				bool hasLineOfSight = hit.Length > 1 && hit[1].transform != null && hit[1].transform.CompareTag("Player");
 
-            // ALWAYS face the player during combat (whether chasing, retreating, or holding ground)
-            Vector2 dir = Target.position - transform.position;
-            float f = Mathf.Atan2(dir.x, -dir.y) * Mathf.Rad2Deg;
-            mesh.transform.rotation = Quaternion.Slerp(mesh.transform.rotation, Quaternion.Euler(0, 0, f), Time.deltaTime * 12f);
+				// If player ran out of chase range or broke line of sight
+				if (distanceToPlayer > chaseDistance || !hasLineOfSight)
+				{
+					StartSearching();
+					return;
+				}
 
-            // Movement & Shooting / Retreating Logic
-            if (distanceToPlayer > preferredRange)
-            {
-                agent.isStopped = false;
-                agent.SetDestination(Target.position);
-            }
-            else if (distanceToPlayer < stopRange)
-            {
-                // Retreat safely using NavMesh sampling with a sideways slide fallback
-                agent.isStopped = false;
-                Vector2 retreatDir = (transform.position - Target.position).normalized;
-                Vector2 rawRetreatPos = (Vector2)transform.position + (retreatDir * 3f);
+				// ALWAYS face the player during combat (whether chasing, retreating, or holding ground)
+				Vector2 dir = Target.position - transform.position;
+				float f = Mathf.Atan2(dir.x, -dir.y) * Mathf.Rad2Deg;
+				mesh.transform.rotation = Quaternion.Slerp(mesh.transform.rotation, Quaternion.Euler(0, 0, f), Time.deltaTime * 12f);
 
-                NavMeshHit navHit;
-                if (NavMesh.SamplePosition(rawRetreatPos, out navHit, 2f, NavMesh.AllAreas))
-                {
-                    agent.SetDestination(navHit.position);
-                }
-                else
-                {
-                    // Fallback: If straight back is blocked by a wall, slide sideways (perpendicular)
-                    Vector2 perpDir = new Vector2(-retreatDir.y, retreatDir.x);
-                    Vector2 sideRetreatPos = (Vector2)transform.position + (perpDir * 2.5f);
+				// Movement & Shooting / Retreating Logic
+				if (distanceToPlayer > preferredRange)
+				{
+					agent.isStopped = false;
+					agent.SetDestination(Target.position);
+				}
+				else if (distanceToPlayer < stopRange)
+				{
+					// Retreat safely using NavMesh sampling with a sideways slide fallback
+					agent.isStopped = false;
+					Vector2 retreatDir = (transform.position - Target.position).normalized;
+					Vector2 rawRetreatPos = (Vector2)transform.position + (retreatDir * 3f);
 
-                    if (NavMesh.SamplePosition(sideRetreatPos, out navHit, 2f, NavMesh.AllAreas))
-                    {
-                        agent.SetDestination(navHit.position);
-                    }
-                    else
-                    {
-                        agent.isStopped = true;
-                    }
-                }
+					NavMeshHit navHit;
+					if (NavMesh.SamplePosition(rawRetreatPos, out navHit, 2f, NavMesh.AllAreas))
+					{
+						agent.SetDestination(navHit.position);
+					}
+					else
+					{
+						// Fallback: If straight back is blocked by a wall, slide sideways (perpendicular)
+						Vector2 perpDir = new Vector2(-retreatDir.y, retreatDir.x);
+						Vector2 sideRetreatPos = (Vector2)transform.position + (perpDir * 2.5f);
 
-                // ALLOW FIRING WHILE RETREATING
-                if (Time.time >= nextFireTime)
-                {
-                    Attack();
-                    nextFireTime = Time.time + fireRate;
-                }
-            }
-            else
-            {
-                agent.isStopped = true;
+						if (NavMesh.SamplePosition(sideRetreatPos, out navHit, 2f, NavMesh.AllAreas))
+						{
+							agent.SetDestination(navHit.position);
+						}
+						else
+						{
+							agent.isStopped = true;
+						}
+					}
 
-                // Stand ground and fire
-                if (Time.time >= nextFireTime)
-                {
-                    Attack();
-                    nextFireTime = Time.time + fireRate;
-                }
-            }
-        }
+					// ALLOW FIRING WHILE RETREATING
+					if (Time.time >= nextFireTime)
+					{
+						Attack();
+						nextFireTime = Time.time + fireRate;
+					}
+				}
+				else
+				{
+					agent.isStopped = true;
 
-        // -------------------------------------------------------------
-        // 2. SEARCH / INVESTIGATE STATE
-        // -------------------------------------------------------------
-        if (searching)
-        {
-            if (agent.velocity.sqrMagnitude > 0.01f)
-            {
-                float f = Mathf.Atan2(agent.velocity.x, -agent.velocity.y) * Mathf.Rad2Deg;
-                mesh.transform.rotation = Quaternion.Slerp(mesh.transform.rotation, Quaternion.Euler(0, 0, f), Time.deltaTime * 10f);
-            }
+					// Stand ground and fire
+					if (Time.time >= nextFireTime)
+					{
+						Attack();
+						nextFireTime = Time.time + fireRate;
+					}
+				}
+			}
 
-            searchTimer -= Time.deltaTime;
+			// -------------------------------------------------------------
+			// 2. SEARCH / INVESTIGATE STATE
+			// -------------------------------------------------------------
+			if (searching && Status != EnemyStatus.Investigating)
+			{
+				if (agent.velocity.sqrMagnitude > 0.01f)
+				{
+					float f = Mathf.Atan2(agent.velocity.x, -agent.velocity.y) * Mathf.Rad2Deg;
+					mesh.transform.rotation = Quaternion.Slerp(mesh.transform.rotation, Quaternion.Euler(0, 0, f), Time.deltaTime * 10f);
+				}
 
-            if (searchTimer <= 0f)
-            {
-                ReturnHome();
-            }
-        }
+				searchTimer -= Time.deltaTime;
 
-        // -------------------------------------------------------------
-        // 3. RETURNING TO GUARD POST STATE
-        // -------------------------------------------------------------
-        if (returning)
-        {
-            if (agent.velocity.sqrMagnitude > 0.01f)
-            {
-                float f = Mathf.Atan2(agent.velocity.x, -agent.velocity.y) * Mathf.Rad2Deg;
-                mesh.transform.rotation = Quaternion.Slerp(mesh.transform.rotation, Quaternion.Euler(0, 0, f), Time.deltaTime * 10f);
-            }
+				if (searchTimer <= 0f)
+				{
+					ReturnHome();
+				}
+			}
 
-            if (!agent.pathPending && agent.remainingDistance <= 0.2f)
-            {
-                agent.isStopped = true;
-                returning = false;
-            }
-        }
+			// -------------------------------------------------------------
+			// 3. RETURNING TO GUARD POST STATE
+			// -------------------------------------------------------------
+			if (returning)
+			{
+				if (agent.velocity.sqrMagnitude > 0.01f)
+				{
+					float f = Mathf.Atan2(agent.velocity.x, -agent.velocity.y) * Mathf.Rad2Deg;
+					mesh.transform.rotation = Quaternion.Slerp(mesh.transform.rotation, Quaternion.Euler(0, 0, f), Time.deltaTime * 10f);
+				}
+
+				if (!agent.pathPending && agent.remainingDistance <= 0.2f)
+				{
+					agent.isStopped = true;
+					returning = false;
+					Status = EnemyStatus.Idling;
+				}
+			}
+		}
+		else if (Status == EnemyStatus.Investigating)
+		{
+			float f = Mathf.Atan2(agent.velocity.x, -agent.velocity.y) * Mathf.Rad2Deg;
+			mesh.transform.rotation = Quaternion.Slerp(mesh.transform.rotation, Quaternion.Euler(new Vector3(0, 0, f)), Time.deltaTime * 10f);
+			if (agent.remainingDistance <= 3f && !invoked)
+			{
+				invoked = true;
+				Invoke(nameof(ManualReturn), waitTime);
+			}
+		}
     }
 
     public void SeePlayer(Transform playerPos)
@@ -167,6 +182,7 @@ public class ShooterEnemy : BaseEnemy
                 Debug.Log("Shooter spotted player!");
                 Target = playerPos;
                 isAlerted = true;
+				Status = EnemyStatus.Chasing;
                 searching = false;
                 returning = false;
                 agent.isStopped = false;
@@ -179,6 +195,7 @@ public class ShooterEnemy : BaseEnemy
         if (!searching && !returning)
         {
             Debug.Log("Shooter lost line of sight, investigating last known position.");
+			Status = EnemyStatus.Searching;
             if (Target != null)
             {
                 Vector2 rawLastPos = Target.position;
@@ -205,14 +222,21 @@ public class ShooterEnemy : BaseEnemy
 
     void ReturnHome()
     {
-        Debug.Log("Area clear, returning to post.");
+        //Debug.Log("Area clear, returning to post.");
         searching = false;
         returning = true;
 
         agent.isStopped = false;
         agent.speed = moveSpeed;
         agent.SetDestination(guardPosition);
-    }
+		Status = EnemyStatus.Returning;
+	}
+
+	public override void ManualReturn()
+	{
+		ReturnHome();
+		invoked = false;
+	}
 
     public override void Attack()
     {

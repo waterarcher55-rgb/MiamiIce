@@ -12,21 +12,23 @@ public class PlayerMovement : MonoBehaviour
 	
 
 	[Header("Components")]
-	public Rigidbody2D rb;
-	public CinemachineCamera cam;
+	[SerializeField] private Rigidbody2D rb;
+	[SerializeField] private CinemachineCamera cam;
 	ParticleSystem flash;
 
 	[Header("GameObjects")]
-	public GameObject PlayerModel;
-	public GameObject MuzzleFlash;
-	public GameObject CameraBrain;
-	public GameObject CursorLocale;
+	[SerializeField] private GameObject PlayerModel;
+	[SerializeField] private GameObject MuzzleFlash;
+	[SerializeField] private GameObject CameraBrain;
+	[SerializeField] private GameObject CursorLocale;
+	[SerializeField] private GameObject bulletPrefab;
 
 	[Header("Player Stats")]
-	public float baseSpeed = 5.0f;
-	public float sprintMod = 2f;
-	public float aimingMod = 0.5f;
-	public float maxAimDist = 10f;
+	[SerializeField] private float baseSpeed = 5.0f;
+	[SerializeField] private float sprintMod = 2f;
+	[SerializeField] private float aimingMod = 0.5f;
+	[SerializeField] private float maxAimDist = 10f;
+	[SerializeField] private float playerHealth = 100f;
 	
     void Start()
     {
@@ -122,9 +124,23 @@ public class PlayerMovement : MonoBehaviour
 	{
 		if (context.performed)
 		{
-			Debug.Log("bang!");
+			//Debug.Log("bang!");
 			flash.Emit(10);
+
+		    GameObject g = Instantiate(bulletPrefab, this.transform.position, PlayerModel.transform.rotation);
+			g.SendMessage("SetDirection", (Vector2)(CursorLocale.transform.position - transform.position).normalized);
 		}
 		
+	}
+
+	public void TakeDamage(float damage)
+	{
+		playerHealth -= damage;
+
+		if (playerHealth <= 0)
+		{
+			Debug.Log("You are dead.");
+			Destroy(this.gameObject);
+		}
 	}
 }

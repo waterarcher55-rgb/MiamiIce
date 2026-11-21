@@ -26,6 +26,7 @@ public class Bullet : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             Debug.Log("Bullet hit the player!");
+			other.gameObject.SendMessage("TakeDamage", 25);
             Destroy(gameObject);
         }
     }

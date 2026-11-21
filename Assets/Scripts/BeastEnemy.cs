@@ -13,7 +13,7 @@ public class BeastEnemy : BaseEnemy
 	[SerializeField] protected float sprintMod = 2;
 	[SerializeField] protected float chaseDistance = 10;
 	[SerializeField] private float attackDistance = 2.5f;
-	[SerializeField] protected float waitTime = 5;
+	//[SerializeField] protected float waitTime = 5;
 	[SerializeField] private bool enraged = false;
 	[SerializeField] private bool returning = false;
 	[SerializeField] private float attackCooldown = 2;
@@ -34,51 +34,66 @@ public class BeastEnemy : BaseEnemy
     // Update is called once per frame
     void Update()
     {
-		if (!canAttack && attackTimer > 0)
+		if (Status != EnemyStatus.Investigating)
 		{
-			attackTimer -= Time.deltaTime;
-			if (attackTimer <= 0)
+			if (!canAttack && attackTimer > 0)
 			{
-				canAttack = true;
-				attackTimer = 0f;
+				attackTimer -= Time.deltaTime;
+				if (attackTimer <= 0)
+				{
+					canAttack = true;
+					attackTimer = 0f;
+				}
+			}
+
+			if (enraged)
+			{
+				if (canAttack && agent.remainingDistance <= attackDistance)
+				{
+					Attack();
+					canAttack = false;
+					attackTimer = attackCooldown;
+				}
+
+				agent.SetDestination(Target.position);
+				agent.obstacleAvoidanceType = UnityEngine.AI.ObstacleAvoidanceType.HighQualityObstacleAvoidance;
+				float f = Mathf.Atan2(agent.velocity.x, -agent.velocity.y) * Mathf.Rad2Deg;
+				mesh.transform.rotation = Quaternion.Slerp(mesh.transform.rotation, Quaternion.Euler(new Vector3(0, 0, f)), Time.deltaTime * 10f);
+				agent.stoppingDistance = 2;
+				if (agent.remainingDistance > chaseDistance)
+				{
+					//if the target is outside chase distance:
+					Derage();
+				}
+			}
+
+
+			if (returning)
+			{
+				float f = Mathf.Atan2(agent.velocity.x, -agent.velocity.y) * Mathf.Rad2Deg;
+				//Debug.Log(f);
+				mesh.transform.rotation = Quaternion.Slerp(mesh.transform.rotation, Quaternion.Euler(new Vector3(0, 0, f)), Time.deltaTime * 10f);
+
+				if (agent.remainingDistance == 0 && this.transform.position == seat.transform.position)
+				{
+					agent.isStopped = true;
+					//anim.Play("watch");
+					returning = false;
+					transform.rotation = seat.rotation;
+				}
 			}
 		}
-		
-		if (enraged)
+		else if (Status == EnemyStatus.Investigating)
 		{
-			if (canAttack && agent.remainingDistance <= attackDistance)
-			{
-				Attack();
-				canAttack = false;
-				attackTimer = attackCooldown;
-			}
-				
-			agent.SetDestination(Target.position);
-			agent.obstacleAvoidanceType = UnityEngine.AI.ObstacleAvoidanceType.HighQualityObstacleAvoidance;
 			float f = Mathf.Atan2(agent.velocity.x, -agent.velocity.y) * Mathf.Rad2Deg;
-			//Debug.Log(f);
 			mesh.transform.rotation = Quaternion.Slerp(mesh.transform.rotation, Quaternion.Euler(new Vector3(0, 0, f)), Time.deltaTime * 10f);
 			agent.stoppingDistance = 2;
-			if (agent.remainingDistance > chaseDistance)
+
+			if (agent.remainingDistance <= 3f && !invoked)
 			{
-				//if the target is outside chase distance:
-				Derage();
-			}
-		}
-
-
-		if (returning)
-		{
-			float f = Mathf.Atan2(agent.velocity.x, -agent.velocity.y) * Mathf.Rad2Deg;
-			//Debug.Log(f);
-			mesh.transform.rotation = Quaternion.Slerp(mesh.transform.rotation, Quaternion.Euler(new Vector3(0, 0, f)), Time.deltaTime * 10f);
-
-			if (agent.remainingDistance == 0 && this.transform.position == seat.transform.position)
-			{
-				agent.isStopped = true;
-				//anim.Play("watch");
-				returning = false;
-				transform.rotation = seat.rotation;
+				Debug.Log("Heading back soon...");
+				invoked = true;
+				Invoke(nameof(ManualReturn), waitTime);
 			}
 		}
 
@@ -87,12 +102,20 @@ public class BeastEnemy : BaseEnemy
 	protected override void TakeDamage(float amount)
 	{
 		currentHealth -= amount;
-		if (currentHealth <= 0) { Die(); }
+		if (currentHealth <= 0) { Die(); return; }
 
 		if (!enraged)
 		{
-
+			GameObject player = GameObject.FindWithTag("Player");
+			if (player != null)
+			{
+				if (Vector3.Distance(transform.position, player.transform.position) < 5)
+				{
+					Enrage(player.transform);
+				}
+			}
 		}
+
 	}
 
 	public void SeePlayer(Transform playerPos)
@@ -128,6 +151,7 @@ public class BeastEnemy : BaseEnemy
 	{
 		//Debug.Log("GET OVER HERE!");
 		Target = playerPos;
+		Status = EnemyStatus.Chasing;
 		agent.isStopped = false;
 		agent.speed = moveSpeed * sprintMod;
 		enraged = true;
@@ -137,7 +161,7 @@ public class BeastEnemy : BaseEnemy
 	{
 		Target = null;
 		enraged = false;
-		
+		Status = EnemyStatus.Searching;
 		//anim.Play("wait");
 		Invoke(nameof(ReturnToSeat), waitTime);
 	}
@@ -145,6 +169,7 @@ public class BeastEnemy : BaseEnemy
 	void ReturnToSeat()
 	{
 		agent.SetDestination(seat.transform.position);
+		Status = EnemyStatus.Returning;
 		agent.stoppingDistance = 0;
 		agent.speed = moveSpeed;
 		returning = true;
@@ -154,5 +179,12 @@ public class BeastEnemy : BaseEnemy
 	{
 		Debug.Log("Beast Attacks");
 		//Target.gameObject.SendMessage("TakeDamage");
+	}
+
+	public override void ManualReturn()
+	{
+		Debug.Log("Return Triggered");
+		ReturnToSeat();
+		invoked = false;
 	}
 }

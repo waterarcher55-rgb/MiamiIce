@@ -31,6 +31,7 @@ public class SecurityCamera : MonoBehaviour
     [SerializeField] private Color normalColor = Color.green;
     [SerializeField] private Color alertColor = Color.red;
     [SerializeField] private Color destroyedColor = Color.gray;
+	[SerializeField] private bool SentForBackup = false;
 
     private float currentHealth;
     private bool isDestroyed = false;
@@ -41,7 +42,15 @@ public class SecurityCamera : MonoBehaviour
     private Mesh coneMesh;
     private Material coneMaterial;
 
+	Collider2D col;
+
     public bool IsDestroyed => isDestroyed;
+
+	void Awake()
+	{
+		col = GetComponent<Collider2D>();
+	}
+
 
     private void Start()
     {
@@ -195,12 +204,19 @@ public class SecurityCamera : MonoBehaviour
 
         isPlayerSpotted = true;
         SetVisualState(alertColor);
-        OnPlayerSpotted?.Invoke(this, playerTransform.position);
+		if (!SentForBackup)
+		{
+			OnPlayerSpotted?.Invoke(this, playerTransform.position);
+			SentForBackup = true;
+			Invoke(nameof(BackupCooldown), 10);
+		}
     }
 
     private void LosePlayer()
     {
         isPlayerSpotted = false;
+		CancelInvoke(nameof(BackupCooldown));
+		BackupCooldown();
         SetVisualState(normalColor);
     }
 
@@ -215,19 +231,20 @@ public class SecurityCamera : MonoBehaviour
         }
     }
 
-    private void OnCollisionEnter(Collision collision)
-    {
-        if (collision.gameObject.CompareTag("Bullet") || collision.gameObject.CompareTag("Projectile"))
-            TakeDamage(25f);
-    }
+	private void OnCollisionEnter2D(Collision2D collision)
+	{
+		if (collision.gameObject.CompareTag("Bullet") || collision.gameObject.CompareTag("Projectile"))
+			TakeDamage(25f);
+	}
 
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Bullet") || other.CompareTag("Projectile"))
-            TakeDamage(25f);
-    }
 
-    private void DestroyCamera()
+	//private void OnTriggerEnter2D(Collider2D collision)
+	//{
+	//	if (collision.CompareTag("Bullet") || collision.CompareTag("Projectile"))
+	//		TakeDamage(25f);
+	//}
+
+	private void DestroyCamera()
     {
         isDestroyed = true;
         isPlayerSpotted = false;
@@ -264,4 +281,9 @@ public class SecurityCamera : MonoBehaviour
         Gizmos.DrawLine(transform.position, transform.position + leftBoundary);
         Gizmos.DrawLine(transform.position, transform.position + rightBoundary);
     }
+
+	private void BackupCooldown()
+	{
+		SentForBackup = false;
+	}
 }

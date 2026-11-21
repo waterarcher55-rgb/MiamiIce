@@ -16,15 +16,13 @@ public class BruteEnemy : BaseEnemy
     public float loseRadius = 6f;
     public float chaseTime = 3f;
     public LayerMask wallLayer;
+	private Vector3 camPosition = Vector3.zero;
 
     // The point the Brute is moving toward
     private Transform currentTarget;
 
     // Brute enemy rigidbody
     private Rigidbody2D bruteRb;
-
-    // Handles navigation around walls
-    private NavMeshAgent agent;
 
     // Tracks if the Brute is chasing
     private bool isChasing = false;
@@ -43,7 +41,9 @@ public class BruteEnemy : BaseEnemy
 
         agent = GetComponent<NavMeshAgent>();
 
-        if (agent != null)
+		startPosition = transform.position;
+
+		if (agent != null)
         {
             agent.updateRotation = false;
             agent.updateUpAxis = false;
@@ -73,6 +73,7 @@ public class BruteEnemy : BaseEnemy
             if (!isChasing && distance <= detectionRadius && wallHit.collider == null)
             {
                 isChasing = true;
+				Status = EnemyStatus.Chasing;
                 loseTimer = 0f;
             }
 
@@ -88,6 +89,7 @@ public class BruteEnemy : BaseEnemy
                     if (loseTimer >= chaseTime)
                     {
                         isChasing = false;
+						Status = EnemyStatus.None;
                         loseTimer = 0f;
                     }
                 }
@@ -107,9 +109,19 @@ public class BruteEnemy : BaseEnemy
         {
             MoveTo(player.position);
         }
+		else if (Status == EnemyStatus.Investigating)
+		{
+			//Debug.Log("Brute is looking...");
+			MoveTo(camPosition);
+			if (agent.remainingDistance <= 3f)
+			{
+				Invoke(nameof(ManualReturn), waitTime);
+			}
+		}
         else
         {
-            Patrol();
+			Status = EnemyStatus.Patrolling;
+			Patrol();
         }
     }
 
@@ -136,11 +148,12 @@ public class BruteEnemy : BaseEnemy
     // Makes the  brute walk between points
     private void Patrol()
     {
-        if (patrolPoint1 == null || patrolPoint2 == null) return;
+		if (patrolPoint1 == null || patrolPoint2 == null) return;
 
        if (currentTarget == null)
         {
-            currentTarget = patrolPoint1;
+			
+			currentTarget = patrolPoint1;
         }
 
         // Move towards the current patrol point
@@ -160,4 +173,15 @@ public class BruteEnemy : BaseEnemy
     {
         // Code will be added later
     }
+
+	public override void ManualSend(Vector3 pos, EnemyStatus status)
+	{
+		Debug.Log("OVERRIDE ManualSend");
+		Status = status;
+
+		camPosition = pos;
+
+
+		MoveTo(pos);
+	}
 }

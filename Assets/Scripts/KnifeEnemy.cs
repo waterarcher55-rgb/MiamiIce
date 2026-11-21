@@ -10,7 +10,6 @@ public class KnifeEnemy : BaseEnemy
     [SerializeField] private float delayBetweenHits = 0.15f;
     [SerializeField] private float recoveryPause = 2f;
 
-    private Rigidbody2D rb;
     private Transform player;
 
     private float nextAttackTime;
@@ -60,7 +59,6 @@ public class KnifeEnemy : BaseEnemy
         {
             GameObject playerObject =
                 GameObject.FindGameObjectWithTag("Player");
-
             if (playerObject != null)
                 player = playerObject.transform;
 
